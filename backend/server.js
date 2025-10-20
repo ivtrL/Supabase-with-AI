@@ -6,7 +6,11 @@ const { salvarPlanoAula, buscarPlanosAula } = require("./supabase");
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.ALLOWED_ORIGIN || "*", // ideal: setar a URL do frontend em produção
+  })
+);
 app.use(express.json());
 app.use(express.static("frontend"));
 
