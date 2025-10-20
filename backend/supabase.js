@@ -1,10 +1,65 @@
 const { createClient } = require("@supabase/supabase-js");
 const config = require("./config");
 
-const supabase = createClient(config.supabase.url, config.supabase.anonKey);
+const supabase = createClient(
+  config.supabase.url,
+  config.supabase.serviceRoleKey,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
+);
+
+// Garantir que professor existe antes de salvar
+async function garantirProfessorExiste(professorId) {
+  try {
+    // Verificar se já existe
+    const { data: professorExiste } = await supabase
+      .from("professores")
+      .select("id")
+      .eq("id", professorId)
+      .single();
+
+    if (professorExiste) {
+      return true;
+    }
+
+    // Buscar dados do auth
+    const { data: userData } = await supabase.auth.admin.getUserById(
+      professorId
+    );
+
+    if (!userData?.user) {
+      throw new Error("Usuário não encontrado");
+    }
+
+    // Criar professor
+    const { error } = await supabase.from("professores").insert({
+      id: professorId,
+      email: userData.user.email,
+      nome:
+        userData.user.user_metadata?.name || userData.user.email.split("@")[0],
+    });
+
+    if (error && error.code !== "23505") {
+      throw error;
+    }
+
+    console.log("✅ Professor criado:", professorId);
+    return true;
+  } catch (error) {
+    console.error("Erro ao garantir professor:", error);
+    throw error;
+  }
+}
 
 async function salvarPlanoAula(professorId, dadosInput, planoGerado) {
   try {
+    // CRIAR PROFESSOR AUTOMATICAMENTE SE NÃO EXISTIR
+    await garantirProfessorExiste(professorId);
+
     const { data, error } = await supabase
       .from("planos_aula")
       .insert({
@@ -30,7 +85,7 @@ async function salvarPlanoAula(professorId, dadosInput, planoGerado) {
     return data;
   } catch (error) {
     console.error("Erro ao salvar plano:", error);
-    throw new Error("Falha ao salvar plano no banco de dados");
+    throw new Error("Falha ao salvar plano: " + error.message);
   }
 }
 
