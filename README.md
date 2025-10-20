@@ -21,7 +21,7 @@ Este projeto foi desenvolvido como parte de um teste técnico para a vaga de Des
 
 ### Frontend
 
-- **HTML5** + **CSS3** + **JavaScript Vanilla**
+- React/Vite
 - Design responsivo e moderno
 
 ### Bibliotecas
